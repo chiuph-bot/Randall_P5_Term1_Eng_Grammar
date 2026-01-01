@@ -23,13 +23,15 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden; /* Prevent body scroll, handle inside device */
+            overflow-y: auto; /* ALLOW SCROLL: Changed from hidden to auto */
+            padding: 20px 0; /* Add padding to prevent edge clipping */
         }
 
         /* --- DEVICE SIMULATOR --- */
         #device-wrapper {
             background-color: var(--bg-color);
             height: 90vh;
+            min-height: 600px; /* Ensure it doesn't get too small, forces scroll */
             width: 100%;
             max-width: 1024px; /* Default Computer */
             border-radius: 20px;
