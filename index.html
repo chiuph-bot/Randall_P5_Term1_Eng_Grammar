@@ -41,20 +41,28 @@
             position: relative;
         }
 
-        /* --- HEADER --- */
+        /* --- HEADER (UPDATED LAYOUT) --- */
         header {
             background-color: var(--primary);
             color: white;
-            padding: 10px 20px;
+            padding: 15px 20px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: space-between; /* Push items to edges */
+            align-items: flex-start;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             z-index: 10;
         }
 
+        /* Group for Title and Device Buttons (Left side) */
+        .header-left-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
         .header-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
         }
 
@@ -62,39 +70,40 @@
             background-color: var(--accent);
             border: none;
             color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
+            padding: 8px 20px;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            /* No margin needed, flex handles position */
         }
 
         .home-btn:hover { background-color: #d35400; }
 
-        /* --- DEVICE CONTROLS --- */
-        #device-controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
+        /* --- DEVICE BUTTONS --- */
+        .device-group {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
+            gap: 5px;
         }
 
         .device-btn {
-            background: rgba(0,0,0,0.6);
+            background: rgba(255,255,255,0.2);
             color: white;
-            border: none;
-            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 12px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 0.8rem;
             text-align: center;
-            width: 80px;
+            transition: all 0.2s;
         }
         
-        .device-btn:hover, .device-btn.active { background: var(--secondary); }
+        .device-btn:hover, .device-btn.active { 
+            background: var(--secondary); 
+            border-color: var(--secondary);
+            font-weight: bold;
+        }
 
         /* --- MAIN CONTENT AREA --- */
         #game-content {
@@ -297,23 +306,55 @@
         /* Helper for button visibility */
         .visible { display: inline-block !important; }
 
+        /* LOADING OVERLAY */
+        #ai-loader {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-    <!-- EXTERNAL DEVICE CONTROLS -->
-    <div id="device-controls">
-        <button class="device-btn" onclick="resizeDevice('mobile', this)">📱 Mobile</button>
-        <button class="device-btn" onclick="resizeDevice('padlet', this)">📟 Padlet</button>
-        <button class="device-btn active" onclick="resizeDevice('computer', this)">💻 Computer</button>
-    </div>
-
     <!-- DEVICE SIMULATOR -->
     <div id="device-wrapper">
         <header>
-            <div class="header-title">Randall's Revision 🎓</div>
-            <button class="home-btn" onclick="goHome()">HOME 🏠</button>
+            <!-- LEFT GROUP: TITLE & DEVICE BUTTONS -->
+            <div class="header-left-group">
+                <div class="header-title">Randall's Revision 🎓</div>
+                <div class="device-group">
+                    <button class="device-btn" onclick="resizeDevice('mobile', this)">📱 Mobile</button>
+                    <button class="device-btn" onclick="resizeDevice('padlet', this)">📟 Padlet</button>
+                    <button class="device-btn active" onclick="resizeDevice('computer', this)">💻 Computer</button>
+                </div>
+            </div>
+
+            <!-- RIGHT GROUP: HOME BUTTON -->
+            <button class="home-btn" onclick="goHome()">🏠 HOME</button>
         </header>
+
+        <!-- AI LOADER -->
+        <div id="ai-loader">
+            <div class="spinner"></div>
+            <h2 style="color:var(--accent);">AI is Generating Questions...</h2>
+            <p>Scanning Grammar Rules...</p>
+        </div>
 
         <div id="game-content">
             
@@ -400,46 +441,86 @@
     </div>
 
 <script>
-    // --- 1. QUESTION DATABASE (The Content) ---
-    // Types: MCQ, Fill, Rearrange, Proof, Write
+    // --- 1. EXPANDED AI QUESTION DATABASE (60+ Questions) ---
     const questionBank = [
-        // UNIT 1: Adverbs / Should
+        // === UNIT 1: Adverbs / Should ===
         { id: 101, topic: "Unit 1", diff: "Easy", type: "MCQ", q: "He is a good singer. He sings ___.", options: ["good", "well", "bad"], a: "well" },
         { id: 102, topic: "Unit 1", diff: "Medium", type: "Fill", q: "The baby is sleeping. Please speak ___ (quiet).", a: "quietly" },
         { id: 103, topic: "Unit 1", diff: "Hard", type: "Proof", q: "Correct the mistake: He runs fastly.", a: "He runs fast" },
         { id: 104, topic: "Unit 1", diff: "Medium", type: "Rearrange", q: "should / You / harder / study", a: "You should study harder" },
-        
-        // UNIT 2: Prepositions / Reciprocal
+        { id: 105, topic: "Unit 1", diff: "Medium", type: "MCQ", q: "We ___ eat too much candy.", options: ["should", "shouldn't", "will"], a: "shouldn't" },
+        { id: 106, topic: "Unit 1", diff: "Easy", type: "Fill", q: "The turtle walks ___ (slow).", a: "slowly" },
+        { id: 107, topic: "Unit 1", diff: "Hard", type: "Proof", q: "Correct: She draws beautiful.", a: "She draws beautifully" },
+        { id: 108, topic: "Unit 1", diff: "Medium", type: "Rearrange", q: "listen / should / teacher / to / We / the", a: "We should listen to the teacher" },
+        { id: 109, topic: "Unit 1", diff: "Hard", type: "Fill", q: "He works ___ (hard) every day.", a: "hard" }, // Tricky adverb (same form)
+        { id: 110, topic: "Unit 1", diff: "Easy", type: "MCQ", q: "It is raining heavily. You ___ go out.", options: ["should", "should not", "can"], a: "should not" },
+
+        // === UNIT 2: Prepositions / Reciprocal ===
         { id: 201, topic: "Unit 2", diff: "Easy", type: "MCQ", q: "I am afraid ___ snakes.", options: ["of", "in", "at"], a: "of" },
         { id: 202, topic: "Unit 2", diff: "Medium", type: "Fill", q: "Tom and Mary help ___ (each other).", a: "each other" },
-        { id: 203, topic: "Unit 2", diff: "Hard", type: "Write", q: "Rewrite using 'good at': He plays tennis well.", a: "He is good at playing tennis" }, // Flexible check needed
+        { id: 203, topic: "Unit 2", diff: "Hard", type: "Write", q: "Rewrite using 'good at': He plays tennis well.", a: "He is good at playing tennis" }, 
+        { id: 204, topic: "Unit 2", diff: "Medium", type: "MCQ", q: "My brother is bad ___ drawing.", options: ["in", "at", "on"], a: "at" },
+        { id: 205, topic: "Unit 2", diff: "Hard", type: "Fill", q: "Are you interested ___ (in/on/at) coding?", a: "in" },
+        { id: 206, topic: "Unit 2", diff: "Medium", type: "Proof", q: "Correct: They are angry to me.", a: "They are angry with me" },
+        { id: 207, topic: "Unit 2", diff: "Easy", type: "Rearrange", q: "tired / of / am / I / homework", a: "I am tired of homework" },
+        { id: 208, topic: "Unit 2", diff: "Medium", type: "Fill", q: "The students talk to ___ (one another).", a: "one another" },
+        { id: 209, topic: "Unit 2", diff: "Hard", type: "MCQ", q: "She is famous ___ her singing.", options: ["for", "at", "by"], a: "for" },
+        { id: 210, topic: "Unit 2", diff: "Medium", type: "Write", q: "Rewrite: He is a fast runner. (Use 'runs')", a: "He runs fast" },
 
-        // UNIT 3: Relative Clauses
+        // === UNIT 3: Relative Clauses / In & With ===
         { id: 301, topic: "Unit 3", diff: "Easy", type: "MCQ", q: "The boy ___ is tall is my brother.", options: ["who", "which", "whose"], a: "who" },
         { id: 302, topic: "Unit 3", diff: "Medium", type: "MCQ", q: "The dog ___ has long ears is cute.", options: ["who", "which", "where"], a: "which" },
         { id: 303, topic: "Unit 3", diff: "Hard", type: "Rearrange", q: "girl / The / with / glasses / nice / is", a: "The girl with glasses is nice" },
-        
-        // UNIT 4: Possessives
+        { id: 304, topic: "Unit 3", diff: "Medium", type: "Fill", q: "The lady ___ (in/with) the red dress is my aunt.", a: "in" },
+        { id: 305, topic: "Unit 3", diff: "Medium", type: "Fill", q: "The man ___ (in/with) the beard is scary.", a: "with" },
+        { id: 306, topic: "Unit 3", diff: "Hard", type: "Proof", q: "Correct: The cat who is black is mine.", a: "The cat which is black is mine" },
+        { id: 307, topic: "Unit 3", diff: "Medium", type: "Rearrange", q: "pen / The / which / blue / is / yours / is", a: "The pen which is blue is yours" },
+        { id: 308, topic: "Unit 3", diff: "Easy", type: "MCQ", q: "I like people ___ are kind.", options: ["which", "who", "whose"], a: "who" },
+        { id: 309, topic: "Unit 3", diff: "Hard", type: "Write", q: "Combine: This is the book. It is funny. (Use 'which')", a: "This is the book which is funny" },
+        { id: 310, topic: "Unit 3", diff: "Medium", type: "Fill", q: "The student ___ (in/with) the uniform is clever.", a: "in" },
+
+        // === UNIT 4: Possessives / Wh- Questions ===
         { id: 401, topic: "Unit 4", diff: "Easy", type: "MCQ", q: "___ bag is this?", options: ["Who", "Whose", "Which"], a: "Whose" },
         { id: 402, topic: "Unit 4", diff: "Medium", type: "Fill", q: "This pen is not my pen. It is ___ (you).", a: "yours" },
         { id: 403, topic: "Unit 4", diff: "Hard", type: "Proof", q: "Correct the mistake: The toy is my.", a: "The toy is mine" },
+        { id: 404, topic: "Unit 4", diff: "Medium", type: "MCQ", q: "These books are ___.", options: ["theirs", "their", "them"], a: "theirs" },
+        { id: 405, topic: "Unit 4", diff: "Easy", type: "Fill", q: "Is this ___ (he) pencil?", a: "his" },
+        { id: 406, topic: "Unit 4", diff: "Medium", type: "Rearrange", q: "car / ours / red / The / is", a: "The red car is ours" },
+        { id: 407, topic: "Unit 4", diff: "Hard", type: "Write", q: "Rewrite: This is her bag. (Use 'hers')", a: "This bag is hers" },
+        { id: 408, topic: "Unit 4", diff: "Medium", type: "Fill", q: "No, that is not mine. It is ___ (she).", a: "hers" },
+        { id: 409, topic: "Unit 4", diff: "Hard", type: "MCQ", q: "___ is that man? He is Mr. Lee.", options: ["Who", "Whose", "Which"], a: "Who" },
+        { id: 410, topic: "Unit 4", diff: "Medium", type: "Proof", q: "Correct: Is this yours cup?", a: "Is this your cup" },
 
-        // UNIT 5-8: Tenses (The Big One)
+        // === UNIT 5-8: Tenses (Past vs Present Perfect) ===
         { id: 501, topic: "Unit 5-8", diff: "Easy", type: "MCQ", q: "I ___ sushi yesterday.", options: ["eat", "ate", "have eaten"], a: "ate" },
         { id: 502, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "I ___ (live) in Hong Kong since 2015.", a: "have lived" },
         { id: 503, topic: "Unit 5-8", diff: "Hard", type: "Write", q: "Rewrite: I ate an apple. (Use: just)", a: "I have just eaten an apple" },
         { id: 504, topic: "Unit 5-8", diff: "Medium", type: "Rearrange", q: "you / finished / Have / yet / ?", a: "Have you finished yet" },
         { id: 505, topic: "Unit 5-8", diff: "Hard", type: "Proof", q: "Correct: I have saw him.", a: "I have seen him" },
         { id: 506, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "He has been sick ___ (for/since) three days.", a: "for" },
-        { id: 507, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "She has been sick ___ (for/since) Monday.", a: "since" }
+        { id: 507, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "She has been sick ___ (for/since) Monday.", a: "since" },
+        { id: 508, topic: "Unit 5-8", diff: "Hard", type: "MCQ", q: "They ___ the movie last night.", options: ["have watched", "watched", "watch"], a: "watched" },
+        { id: 509, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "We have ___ (already/yet) done our homework.", a: "already" },
+        { id: 510, topic: "Unit 5-8", diff: "Hard", type: "Rearrange", q: "broken / He / leg / has / his", a: "He has broken his leg" },
+        { id: 511, topic: "Unit 5-8", diff: "Medium", type: "MCQ", q: "Have you ___ visited Japan?", options: ["ever", "never", "just"], a: "ever" },
+        { id: 512, topic: "Unit 5-8", diff: "Easy", type: "Fill", q: "No, I have ___ (never/ever) eaten a frog.", a: "never" },
+        { id: 513, topic: "Unit 5-8", diff: "Hard", type: "Proof", q: "Correct: She has arrive just.", a: "She has just arrived" },
+        { id: 514, topic: "Unit 5-8", diff: "Medium", type: "Write", q: "Answer: Have you eaten? (No)", a: "No I have not eaten yet" }, // Flexible
+        { id: 515, topic: "Unit 5-8", diff: "Hard", type: "Fill", q: "My dog ___ (die) two years ago.", a: "died" },
+        { id: 516, topic: "Unit 5-8", diff: "Medium", type: "MCQ", q: "Where is Mum? She ___ to the market.", options: ["has gone", "went", "goes"], a: "has gone" },
+        { id: 517, topic: "Unit 5-8", diff: "Easy", type: "Fill", q: "I ___ (buy) a new bag last week.", a: "bought" },
+        { id: 518, topic: "Unit 5-8", diff: "Hard", type: "Rearrange", q: "ten / lived / for / We / here / years / have", a: "We have lived here for ten years" },
+        { id: 519, topic: "Unit 5-8", diff: "Medium", type: "Proof", q: "Correct: I did not finished yet.", a: "I have not finished yet" },
+        { id: 520, topic: "Unit 5-8", diff: "Easy", type: "Fill", q: "___ (Have/Has) the boys come home?", a: "Have" }
     ];
 
-    // --- 2. GAME VARIABLES ---
+    // --- 2. GAME VARIABLES & STATE ---
     let config = { topic: null, diff: null, type: null };
     let currentQuestions = [];
     let currentIndex = 0;
     let score = 0;
-    let scoreBreakdown = {}; // { "MCQ": {total:5, correct:3}, "Unit 1": ... }
+    let scoreBreakdown = {}; 
+    let usedQuestionIds = []; // MEMORY: Prevents repetition across games
 
     // --- 3. NAVIGATION LOGIC ---
     function showScreen(id) {
@@ -469,11 +550,19 @@
     // --- 4. SELECTION HANDLERS ---
     function selectTopic(t) { config.topic = t; showScreen('screen-difficulty'); }
     function selectDiff(d) { config.diff = d; showScreen('screen-type'); }
-    function selectType(t) { config.type = t; startGame(); }
+    function selectType(t) { config.type = t; 
+        // Trigger AI Loading Effect
+        const loader = document.getElementById('ai-loader');
+        loader.style.display = 'flex';
+        setTimeout(() => {
+            loader.style.display = 'none';
+            startGame();
+        }, 1500); // 1.5s delay to simulate "thinking"
+    }
 
-    // --- 5. GAME ENGINE ---
+    // --- 5. GAME ENGINE (Updated Logic) ---
     function startGame() {
-        // Filter Questions
+        // Filter Questions based on User Choice
         let filtered = questionBank.filter(q => {
             const matchTopic = config.topic === 'Mixed' || q.topic === config.topic;
             const matchDiff = config.diff === 'Mixed' || q.diff === config.diff;
@@ -481,13 +570,28 @@
             return matchTopic && matchDiff && matchType;
         });
 
-        if (filtered.length === 0) {
-            alert("No questions found for this specific combination. Trying 'Mixed' mode automatically!");
-            currentQuestions = questionBank.sort(() => 0.5 - Math.random()).slice(0, 10);
-        } else {
-            // Shuffle
-            currentQuestions = filtered.sort(() => 0.5 - Math.random());
+        // 1. Remove questions already used in previous sessions
+        let unusedFiltered = filtered.filter(q => !usedQuestionIds.includes(q.id));
+
+        // 2. If we run out of fresh questions, reset the memory for this category
+        if (unusedFiltered.length < 5) { 
+            // If less than 5 fresh questions, reset memory for these specific ones to allow replay
+            // We only remove the IDs of the current filtered set from the used list
+            const idsToReset = filtered.map(q => q.id);
+            usedQuestionIds = usedQuestionIds.filter(id => !idsToReset.includes(id));
+            unusedFiltered = filtered; // Reset pool
         }
+
+        if (unusedFiltered.length === 0) {
+            alert("No questions found for this specific combination. Trying 'Mixed' mode automatically!");
+            unusedFiltered = questionBank.sort(() => 0.5 - Math.random());
+        }
+
+        // Shuffle and Pick 10
+        currentQuestions = unusedFiltered.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+        // Mark these as used
+        currentQuestions.forEach(q => usedQuestionIds.push(q.id));
 
         // Initialize State
         currentIndex = 0;
@@ -531,6 +635,15 @@
         } 
         else if (q.type === 'Fill' || q.type === 'Proof' || q.type === 'Write') {
             interaction.innerHTML = `<input type="text" id="user-input" placeholder="Type your answer here..." autocomplete="off">`;
+            // Add Enter key support
+            setTimeout(() => {
+                document.getElementById('user-input').addEventListener("keypress", function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        checkAnswer();
+                    }
+                });
+            }, 100);
         }
         else if (q.type === 'Rearrange') {
             let words = q.a.split(" ").sort(() => 0.5 - Math.random());
@@ -568,18 +681,19 @@
         }
 
         // Validate
-        // Normalize: lowercase, remove punctuation for lenient checking (except for punctuation-specific qs?)
-        // For P5, let's be slightly lenient with punctuation at the end, but strict with spelling.
-        let cleanUser = userAns.toLowerCase().replace(/[.!?]$/, "");
-        let cleanKey = q.a.toLowerCase().replace(/[.!?]$/, "");
+        let cleanUser = userAns.toLowerCase().replace(/[.!?]$/, "").replace(/\s+/g, " ");
+        let cleanKey = q.a.toLowerCase().replace(/[.!?]$/, "").replace(/\s+/g, " ");
 
+        // Simple check
         if (cleanUser === cleanKey) isCorrect = true;
         
-        // Special Logic for 'Write' (Sentence Rewriting) - checking contains key words
-        if (q.type === 'Write' && !isCorrect) {
-             // Sometimes writing can vary. For this simple engine, we stick to strict match or very close match.
-             // If user included punctuation and key didn't, or vice versa
-             if(userAns.toLowerCase() === q.a.toLowerCase()) isCorrect = true;
+        // Flexible checks
+        // 1. Write: allow slight variations in punctuation if words are correct
+        if (q.type === 'Write' || q.type === 'Proof') {
+             if(cleanUser.includes(cleanKey) || cleanKey.includes(cleanUser)) {
+                 // Determine stricter length check to avoid "Yes" matching "Yes I have" improperly
+                 if (Math.abs(cleanUser.length - cleanKey.length) < 5) isCorrect = true;
+             }
         }
 
         // Display Feedback
