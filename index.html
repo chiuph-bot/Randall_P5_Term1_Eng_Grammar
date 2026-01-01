@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Randall's P5 Grammar Revision Game</title>
+    <style>
+        :root {
+            --primary: #2c3e50; /* Dark Blue */
+            --secondary: #3498db; /* Light Blue */
+            --accent: #e67e22; /* Orange */
+            --bg-color: #ecf0f1;
+            --card-bg: #ffffff;
+            --success: #27ae60;
+            --error: #c0392b;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; /* Playful font for kids */
+            background-color: #95a5a6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll, handle inside device */
+        }
+
+        /* --- DEVICE SIMULATOR --- */
+        #device-wrapper {
+            background-color: var(--bg-color);
+            height: 90vh;
+            width: 100%;
+            max-width: 1024px; /* Default Computer */
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: max-width 0.5s ease, height 0.5s ease;
+            position: relative;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .home-btn {
+            background-color: var(--accent);
+            border: none;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .home-btn:hover { background-color: #d35400; }
+
+        /* --- DEVICE CONTROLS --- */
+        #device-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .device-btn {
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            width: 80px;
+        }
+        
+        .device-btn:hover, .device-btn.active { background: var(--secondary); }
+
+        /* --- MAIN CONTENT AREA --- */
+        #game-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto; /* Scroll inside the device */
+            position: relative;
+        }
+
+        /* --- SCREENS --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.3s;
+        }
+        .screen.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2 { color: var(--primary); margin-bottom: 20px; }
+
+        /* --- MENU BUTTONS --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .selection-btn {
+            background: white;
+            border: 3px solid var(--secondary);
+            color: var(--primary);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .selection-btn:hover {
+            background: var(--secondary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .selection-btn.mixed { border-color: var(--accent); color: var(--accent); }
+        .selection-btn.mixed:hover { background: var(--accent); color: white; }
+
+        .back-btn {
+            margin-top: 30px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* --- GAMEPLAY UI --- */
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--secondary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .question-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 25px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        /* Input Styles */
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            outline: none;
+            text-align: center;
+        }
+        input[type="text"]:focus { border-color: var(--secondary); }
+
+        .mcq-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .mcq-option {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        .mcq-option:hover { background: #e8f6f3; border-color: var(--secondary); }
+
+        /* Drag and Drop (Rearrange) */
+        .word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            min-height: 50px;
+        }
+        .drop-zone {
+            border: 2px dashed var(--secondary);
+            min-height: 60px;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            background: #fdfdfd;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .word-chip {
+            background: var(--secondary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            user-select: none;
+        }
+
+        /* Feedback */
+        .feedback {
+            font-size: 1.1rem;
+            font-weight: bold;
+            min-height: 30px;
+            margin: 15px 0;
+        }
+        .correct-text { color: var(--success); }
+        .wrong-text { color: var(--error); }
+
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: none; /* Hidden initially */
+        }
+
+        /* --- RESULTS TABLE --- */
+        .results-table {
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .results-table th { background-color: var(--primary); color: white; }
+        .total-row { font-weight: bold; background-color: #ecf0f1; }
+
+        /* Helper for button visibility */
+        .visible { display: inline-block !important; }
+
+    </style>
+</head>
+<body>
+
+    <!-- EXTERNAL DEVICE CONTROLS -->
+    <div id="device-controls">
+        <button class="device-btn" onclick="resizeDevice('mobile', this)">📱 Mobile</button>
+        <button class="device-btn" onclick="resizeDevice('padlet', this)">📟 Padlet</button>
+        <button class="device-btn active" onclick="resizeDevice('computer', this)">💻 Computer</button>
+    </div>
+
+    <!-- DEVICE SIMULATOR -->
+    <div id="device-wrapper">
+        <header>
+            <div class="header-title">Randall's Revision 🎓</div>
+            <button class="home-btn" onclick="goHome()">HOME 🏠</button>
+        </header>
+
+        <div id="game-content">
+            
+            <!-- SCREEN 1: TOPIC SELECTION -->
+            <div id="screen-topic" class="screen active">
+                <h1>Step 1: Choose Grammar Item</h1>
+                <div class="menu-grid">
+                    <button class="selection-btn" onclick="selectTopic('Unit 1')">Unit 1: Adverbs</button>
+                    <button class="selection-btn" onclick="selectTopic('Unit 2')">Unit 2: Prepositions</button>
+                    <button class="selection-btn" onclick="selectTopic('Unit 3')">Unit 3: Relative Clauses</button>
+                    <button class="selection-btn" onclick="selectTopic('Unit 4')">Unit 4: Possessives</button>
+                    <button class="selection-btn" onclick="selectTopic('Unit 5-8')">Units 5-8: Tenses</button>
+                    <button class="selection-btn mixed" onclick="selectTopic('Mixed')">🎲 Mixed Grammar</button>
+                </div>
+            </div>
+
+            <!-- SCREEN 2: DIFFICULTY SELECTION -->
+            <div id="screen-difficulty" class="screen">
+                <h1>Step 2: Difficulty</h1>
+                <div class="menu-grid">
+                    <button class="selection-btn" onclick="selectDiff('Easy')">Easy</button>
+                    <button class="selection-btn" onclick="selectDiff('Medium')">Medium</button>
+                    <button class="selection-btn" onclick="selectDiff('Hard')">Hard</button>
+                    <button class="selection-btn mixed" onclick="selectDiff('Mixed')">🎲 Mixed Difficulty</button>
+                </div>
+                <button class="back-btn" onclick="showScreen('screen-topic')">⬅ Back</button>
+            </div>
+
+            <!-- SCREEN 3: TYPE SELECTION -->
+            <div id="screen-type" class="screen">
+                <h1>Step 3: Question Type</h1>
+                <div class="menu-grid">
+                    <button class="selection-btn" onclick="selectType('MCQ')">Circle Correct Answer</button>
+                    <button class="selection-btn" onclick="selectType('Fill')">Fill in the Blanks</button>
+                    <button class="selection-btn" onclick="selectType('Rearrange')">Rearrange Sentences</button>
+                    <button class="selection-btn" onclick="selectType('Proof')">Proof-reading</button>
+                    <button class="selection-btn" onclick="selectType('Write')">Writing Sentences</button>
+                    <button class="selection-btn mixed" onclick="selectType('Mixed')">🎲 Mixed Types</button>
+                </div>
+                <button class="back-btn" onclick="showScreen('screen-difficulty')">⬅ Back</button>
+            </div>
+
+            <!-- SCREEN 4: GAMEPLAY -->
+            <div id="screen-game" class="screen">
+                <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+                <h2 id="q-counter">Question 1</h2>
+                
+                <div class="question-card">
+                    <div id="q-text" class="question-text">Loading...</div>
+                    <div id="q-interaction-area"></div>
+                </div>
+
+                <div id="feedback" class="feedback"></div>
+                
+                <button id="submit-btn" class="action-btn" onclick="checkAnswer()">Submit</button>
+                <button id="next-btn" class="action-btn" onclick="nextQuestion()">Next Question ➡</button>
+                
+                <br>
+                <button class="back-btn" onclick="quitGame()">Exit Game</button>
+            </div>
+
+            <!-- SCREEN 5: RESULTS -->
+            <div id="screen-results" class="screen">
+                <h1>🎉 Revision Complete!</h1>
+                <h2>Total Score: <span id="final-score" style="color:var(--accent); font-size:2rem;">0</span></h2>
+                
+                <h3>Points Breakdown:</h3>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="score-table-body">
+                        <!-- JS fills this -->
+                    </tbody>
+                </table>
+
+                <button class="selection-btn mixed" onclick="goHome()" style="margin-top:20px;">Play Again</button>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- 1. QUESTION DATABASE (The Content) ---
+    // Types: MCQ, Fill, Rearrange, Proof, Write
+    const questionBank = [
+        // UNIT 1: Adverbs / Should
+        { id: 101, topic: "Unit 1", diff: "Easy", type: "MCQ", q: "He is a good singer. He sings ___.", options: ["good", "well", "bad"], a: "well" },
+        { id: 102, topic: "Unit 1", diff: "Medium", type: "Fill", q: "The baby is sleeping. Please speak ___ (quiet).", a: "quietly" },
+        { id: 103, topic: "Unit 1", diff: "Hard", type: "Proof", q: "Correct the mistake: He runs fastly.", a: "He runs fast" },
+        { id: 104, topic: "Unit 1", diff: "Medium", type: "Rearrange", q: "should / You / harder / study", a: "You should study harder" },
+        
+        // UNIT 2: Prepositions / Reciprocal
+        { id: 201, topic: "Unit 2", diff: "Easy", type: "MCQ", q: "I am afraid ___ snakes.", options: ["of", "in", "at"], a: "of" },
+        { id: 202, topic: "Unit 2", diff: "Medium", type: "Fill", q: "Tom and Mary help ___ (each other).", a: "each other" },
+        { id: 203, topic: "Unit 2", diff: "Hard", type: "Write", q: "Rewrite using 'good at': He plays tennis well.", a: "He is good at playing tennis" }, // Flexible check needed
+
+        // UNIT 3: Relative Clauses
+        { id: 301, topic: "Unit 3", diff: "Easy", type: "MCQ", q: "The boy ___ is tall is my brother.", options: ["who", "which", "whose"], a: "who" },
+        { id: 302, topic: "Unit 3", diff: "Medium", type: "MCQ", q: "The dog ___ has long ears is cute.", options: ["who", "which", "where"], a: "which" },
+        { id: 303, topic: "Unit 3", diff: "Hard", type: "Rearrange", q: "girl / The / with / glasses / nice / is", a: "The girl with glasses is nice" },
+        
+        // UNIT 4: Possessives
+        { id: 401, topic: "Unit 4", diff: "Easy", type: "MCQ", q: "___ bag is this?", options: ["Who", "Whose", "Which"], a: "Whose" },
+        { id: 402, topic: "Unit 4", diff: "Medium", type: "Fill", q: "This pen is not my pen. It is ___ (you).", a: "yours" },
+        { id: 403, topic: "Unit 4", diff: "Hard", type: "Proof", q: "Correct the mistake: The toy is my.", a: "The toy is mine" },
+
+        // UNIT 5-8: Tenses (The Big One)
+        { id: 501, topic: "Unit 5-8", diff: "Easy", type: "MCQ", q: "I ___ sushi yesterday.", options: ["eat", "ate", "have eaten"], a: "ate" },
+        { id: 502, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "I ___ (live) in Hong Kong since 2015.", a: "have lived" },
+        { id: 503, topic: "Unit 5-8", diff: "Hard", type: "Write", q: "Rewrite: I ate an apple. (Use: just)", a: "I have just eaten an apple" },
+        { id: 504, topic: "Unit 5-8", diff: "Medium", type: "Rearrange", q: "you / finished / Have / yet / ?", a: "Have you finished yet" },
+        { id: 505, topic: "Unit 5-8", diff: "Hard", type: "Proof", q: "Correct: I have saw him.", a: "I have seen him" },
+        { id: 506, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "He has been sick ___ (for/since) three days.", a: "for" },
+        { id: 507, topic: "Unit 5-8", diff: "Medium", type: "Fill", q: "She has been sick ___ (for/since) Monday.", a: "since" }
+    ];
+
+    // --- 2. GAME VARIABLES ---
+    let config = { topic: null, diff: null, type: null };
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let scoreBreakdown = {}; // { "MCQ": {total:5, correct:3}, "Unit 1": ... }
+
+    // --- 3. NAVIGATION LOGIC ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function goHome() {
+        showScreen('screen-topic');
+        config = { topic: null, diff: null, type: null };
+    }
+
+    function quitGame() {
+        if(confirm("Are you sure you want to quit?")) goHome();
+    }
+
+    function resizeDevice(type, btn) {
+        document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const wrapper = document.getElementById('device-wrapper');
+        
+        if (type === 'mobile') wrapper.style.maxWidth = "375px";
+        else if (type === 'padlet') wrapper.style.maxWidth = "768px";
+        else wrapper.style.maxWidth = "1024px";
+    }
+
+    // --- 4. SELECTION HANDLERS ---
+    function selectTopic(t) { config.topic = t; showScreen('screen-difficulty'); }
+    function selectDiff(d) { config.diff = d; showScreen('screen-type'); }
+    function selectType(t) { config.type = t; startGame(); }
+
+    // --- 5. GAME ENGINE ---
+    function startGame() {
+        // Filter Questions
+        let filtered = questionBank.filter(q => {
+            const matchTopic = config.topic === 'Mixed' || q.topic === config.topic;
+            const matchDiff = config.diff === 'Mixed' || q.diff === config.diff;
+            const matchType = config.type === 'Mixed' || q.type === config.type;
+            return matchTopic && matchDiff && matchType;
+        });
+
+        if (filtered.length === 0) {
+            alert("No questions found for this specific combination. Trying 'Mixed' mode automatically!");
+            currentQuestions = questionBank.sort(() => 0.5 - Math.random()).slice(0, 10);
+        } else {
+            // Shuffle
+            currentQuestions = filtered.sort(() => 0.5 - Math.random());
+        }
+
+        // Initialize State
+        currentIndex = 0;
+        score = 0;
+        scoreBreakdown = {};
+        
+        showScreen('screen-game');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const q = currentQuestions[currentIndex];
+        const qText = document.getElementById('q-text');
+        const interaction = document.getElementById('q-interaction-area');
+        const feedback = document.getElementById('feedback');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        
+        // Update Progress
+        document.getElementById('q-counter').innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
+        const pct = ((currentIndex) / currentQuestions.length) * 100;
+        document.getElementById('progress-fill').style.width = pct + "%";
+
+        // Reset UI
+        feedback.innerHTML = "";
+        nextBtn.style.display = "none";
+        submitBtn.style.display = "inline-block";
+        interaction.innerHTML = "";
+
+        qText.innerText = q.q;
+
+        // Render based on Type
+        if (q.type === 'MCQ') {
+            submitBtn.style.display = "none"; // Hide submit, click option to answer
+            let html = `<div class="mcq-container">`;
+            q.options.forEach(opt => {
+                html += `<div class="mcq-option" onclick="checkAnswer('${opt.replace(/'/g, "\\'")}')">${opt}</div>`;
+            });
+            html += `</div>`;
+            interaction.innerHTML = html;
+        } 
+        else if (q.type === 'Fill' || q.type === 'Proof' || q.type === 'Write') {
+            interaction.innerHTML = `<input type="text" id="user-input" placeholder="Type your answer here..." autocomplete="off">`;
+        }
+        else if (q.type === 'Rearrange') {
+            let words = q.a.split(" ").sort(() => 0.5 - Math.random());
+            interaction.innerHTML = `
+                <div id="drop-zone" class="drop-zone"></div>
+                <div id="word-bank" class="word-bank">
+                    ${words.map(w => `<div class="word-chip" onclick="moveWord(this)">${w}</div>`).join('')}
+                </div>
+                <div style="font-size:0.8rem; color:#7f8c8d; margin-top:5px;">(Tap words to move them)</div>
+            `;
+        }
+    }
+
+    // --- 6. CHECKING LOGIC ---
+    function moveWord(el) {
+        const zone = document.getElementById('drop-zone');
+        const bank = document.getElementById('word-bank');
+        if (el.parentNode === bank) zone.appendChild(el);
+        else bank.appendChild(el);
+    }
+
+    function checkAnswer(mcqChoice = null) {
+        const q = currentQuestions[currentIndex];
+        let userAns = "";
+        let isCorrect = false;
+
+        // Get Input
+        if (q.type === 'MCQ') userAns = mcqChoice;
+        else if (q.type === 'Rearrange') {
+            const words = Array.from(document.getElementById('drop-zone').children).map(c => c.innerText);
+            userAns = words.join(" ");
+        }
+        else {
+            userAns = document.getElementById('user-input').value.trim();
+        }
+
+        // Validate
+        // Normalize: lowercase, remove punctuation for lenient checking (except for punctuation-specific qs?)
+        // For P5, let's be slightly lenient with punctuation at the end, but strict with spelling.
+        let cleanUser = userAns.toLowerCase().replace(/[.!?]$/, "");
+        let cleanKey = q.a.toLowerCase().replace(/[.!?]$/, "");
+
+        if (cleanUser === cleanKey) isCorrect = true;
+        
+        // Special Logic for 'Write' (Sentence Rewriting) - checking contains key words
+        if (q.type === 'Write' && !isCorrect) {
+             // Sometimes writing can vary. For this simple engine, we stick to strict match or very close match.
+             // If user included punctuation and key didn't, or vice versa
+             if(userAns.toLowerCase() === q.a.toLowerCase()) isCorrect = true;
+        }
+
+        // Display Feedback
+        const feedback = document.getElementById('feedback');
+        if (isCorrect) {
+            score++;
+            feedback.innerHTML = `<span class="correct-text">✅ Correct! Good job.</span>`;
+            updateBreakdown(q, 1);
+        } else {
+            feedback.innerHTML = `<span class="wrong-text">❌ Oops! The correct answer is: <b>${q.a}</b></span>`;
+            updateBreakdown(q, 0);
+        }
+
+        // UI Updates
+        document.getElementById('submit-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        
+        // Disable inputs
+        if(document.getElementById('user-input')) document.getElementById('user-input').disabled = true;
+        if(q.type === 'MCQ') {
+            document.querySelectorAll('.mcq-option').forEach(o => o.style.pointerEvents = 'none');
+        }
+    }
+
+    function updateBreakdown(q, points) {
+        // Track by Type
+        if(!scoreBreakdown[q.type]) scoreBreakdown[q.type] = { total: 0, score: 0 };
+        scoreBreakdown[q.type].total++;
+        scoreBreakdown[q.type].score += points;
+
+        // Track by Topic
+        if(!scoreBreakdown[q.topic]) scoreBreakdown[q.topic] = { total: 0, score: 0 };
+        scoreBreakdown[q.topic].total++;
+        scoreBreakdown[q.topic].score += points;
+    }
+
+    // --- 7. END GAME ---
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < currentQuestions.length) {
+            loadQuestion();
+        } else {
+            finishGame();
+        }
+    }
+
+    function finishGame() {
+        showScreen('screen-results');
+        document.getElementById('final-score').innerText = `${score} / ${currentQuestions.length}`;
+        document.getElementById('progress-fill').style.width = "100%";
+
+        const tbody = document.getElementById('score-table-body');
+        tbody.innerHTML = "";
+
+        // Generate Table Rows
+        for (const [category, data] of Object.entries(scoreBreakdown)) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${category}</td><td>${data.score} / ${data.total}</td>`;
+            tbody.appendChild(tr);
+        }
+        
+        // Add Total Row
+        const trTotal = document.createElement('tr');
+        trTotal.className = "total-row";
+        trTotal.innerHTML = `<td>OVERALL</td><td>${score} / ${currentQuestions.length}</td>`;
+        tbody.appendChild(trTotal);
+    }
+
+</script>
+</body>
+</html>
